@@ -18,4 +18,18 @@ Remember to add your trained data inside Dockerfile before building image
 * Run Docker image: `docker run -t -i -p 8080:8080 nassiesse/simple-java-ocr`
 * Access service: `http://localhost:8080/api/pdf/extractText`. Remember to use `POST`
 
-**Tip!** Use Postman. Select tab _Body_ add _Key_=`file` and in _Value_ click _files_ button and add a pdf file. 
+**Tip!** Use Postman
+* Select tab _Body_ 
+* Click _form-data_
+* In field _Key_ type `file` and choose dropdown value `File` 
+* In field _Value_ click _Select Files_ button and add a PDF file 
+* Now _Send_ it
+
+### Returned Json
+The returned result should contain something like this
+```
+{
+    "fileName": "test.pdf",
+    "text": "Your content from pdf\nSeparated with\nBackslash followed with the letter n\n"
+}
+```
