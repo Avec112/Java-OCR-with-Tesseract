@@ -12,11 +12,15 @@ RUN apk add --no-cache tesseract-ocr
 # Download last language package
 RUN mkdir -p /usr/share/tessdata
 #ADD https://github.com/tesseract-ocr/tessdata/raw/master/ita.traineddata /usr/share/tessdata/ita.traineddata
-ADD https://github.com/tesseract-ocr/tessdata/blob/master/nor.traineddata /usr/share/tessdata/nor.traineddata
+ADD https://github.com/tesseract-ocr/tessdata/raw/master/nor.traineddata /usr/share/tessdata/nor.traineddata
+#ADD https://github.com/tesseract-ocr/tessdata_fast/raw/master/nor.traineddata /usr/share/tessdata/nor.traineddata
 
 # Check the installation status
 RUN tesseract --list-langs    
-RUN tesseract -v  
+RUN tesseract -v
+
+# https://github.com/nguyenq/tess4j/issues/105
+ENV LC_ALL C
 
 # Set the location of the jar
 ENV MICROSERVICE_HOME /usr/microservices

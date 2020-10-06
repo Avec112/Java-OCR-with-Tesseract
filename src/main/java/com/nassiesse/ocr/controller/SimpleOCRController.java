@@ -6,6 +6,7 @@ import java.io.IOException;
 
 import javax.imageio.ImageIO;
 
+import lombok.extern.slf4j.Slf4j;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.rendering.ImageType;
 import org.apache.pdfbox.rendering.PDFRenderer;
@@ -24,31 +25,42 @@ import net.sourceforge.tess4j.ITesseract;
 import net.sourceforge.tess4j.Tesseract;
 import net.sourceforge.tess4j.TesseractException;
 
+
+@Slf4j
 @RestController
 public class SimpleOCRController {
 
 	@PostMapping("/api/pdf/extractText")
     public @ResponseBody ResponseEntity<String> 
 					extractTextFromPDFFile(@RequestParam("file") MultipartFile file) {
-		try {
-			
-			// Load file into PDFBox class
-			PDDocument document = PDDocument.load(file.getBytes());
+		// Load file into PDFBox class
+		try (PDDocument document = PDDocument.load(file.getBytes())){
+			log.debug("Name:\t\t\t{}", file.getName());
+			log.debug("OriginalFilename:\t{}", file.getOriginalFilename());
+			log.debug("ContentType:\t\t{}", file.getContentType());
+			log.debug("Size:\t\t\t{}KB", file.getSize()/1000);
+
+
 			PDFTextStripper stripper = new PDFTextStripper();
 			String strippedText = stripper.getText(document);
 			
 			// Check text exists into the file
 			if (strippedText.trim().isEmpty()){
+				log.debug("No text found need to extract (OCR)");
 				strippedText = extractTextFromScannedDocument(document);
 			}
-			
+
+
 			JSONObject obj = new JSONObject();
 	        obj.put("fileName", file.getOriginalFilename());
-	        obj.put("text", strippedText.toString());
-			
-			return new ResponseEntity<String>(obj.toString(), HttpStatus.OK);
+	        obj.put("text", strippedText);
+
+	        log.debug("\n---------------\n{}\n---------------\n", strippedText);
+
+	        log.debug("Returning stripped text.");
+			return new ResponseEntity<>(obj.toString(), HttpStatus.OK);
 		} catch (Exception e) {
-			return new ResponseEntity<String>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+			return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 		
 	}
@@ -56,7 +68,7 @@ public class SimpleOCRController {
 	@GetMapping("/api/pdf/ping")
     public ResponseEntity<String> get()
     {
-		return new ResponseEntity<String>("PONG", HttpStatus.OK);
+		return new ResponseEntity<>("PONG", HttpStatus.OK);
     }
 
 	private String extractTextFromScannedDocument(PDDocument document) throws IOException, TesseractException {
@@ -65,9 +77,9 @@ public class SimpleOCRController {
 		PDFRenderer pdfRenderer = new PDFRenderer(document);
 		StringBuilder out = new StringBuilder();
 		
-		ITesseract _tesseract = new Tesseract();
-		_tesseract.setDatapath("/usr/share/tessdata/");
-		_tesseract.setLanguage("ita"); // choose your language
+		ITesseract tesseract = new Tesseract();
+		tesseract.setDatapath("/usr/share/tessdata/");
+		tesseract.setLanguage("nor"); // choose your language
 				
 		for (int page = 0; page < document.getNumberOfPages(); page++)
 		{ 
@@ -77,14 +89,15 @@ public class SimpleOCRController {
     	    File temp = File.createTempFile("tempfile_" + page, ".png"); 
     	    ImageIO.write(bim, "png", temp);
 	        
-    	    String result = _tesseract.doOCR(temp);
+    	    String result = tesseract.doOCR(temp);
 		    out.append(result);
 		
 		    // Delete temp file
-		    temp.delete();
+			//noinspection ResultOfMethodCallIgnored
+			temp.delete();
 		    
 		}
-		
+		log.debug("Found {} characters.", out.length());
 		return out.toString();
 
 	}
